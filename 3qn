@@ -1,0 +1,50 @@
+import cv2
+import numpy as np
+
+# Load the input video
+video_path = "/Users/akashdoss/Downloads/in-y2mate.com - HAMMER Blade 2 Pro video sample 2 nonstabilized_1080p.mp4"
+cap = cv2.VideoCapture(video_path)
+
+# Get video properties
+width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+# Example smoothed transforms (for demo purposes, random data)
+dx, dy, da = 1.0, 1.0, 0.01  # Translation and rotation adjustments (can come from step 2)
+
+while True:
+    # Read the next frame
+    success, frame = cap.read()
+    if not success:
+        break
+
+    # Create transformation matrix for translation and rotation
+    m = np.zeros((2, 3), np.float32)
+    m[0, 0] = np.cos(da)
+    m[0, 1] = -np.sin(da)
+    m[1, 0] = np.sin(da)
+    m[1, 1] = np.cos(da)
+    m[0, 2] = dx
+    m[1, 2] = dy
+
+    # Warp the frame based on the transformation
+    stabilized_frame = cv2.warpAffine(frame, m, (width, height))
+
+    # Slightly zoom in to compensate for border effects
+    zoom_scale = 1.05
+    zoomed_frame = cv2.resize(stabilized_frame, None, fx=zoom_scale, fy=zoom_scale)
+
+    # Crop the zoomed frame back to the original size
+    x_crop = int((zoomed_frame.shape[1] - width) / 2)
+    y_crop = int((zoomed_frame.shape[0] - height) / 2)
+    cropped_frame = zoomed_frame[y_crop:y_crop+height, x_crop:x_crop+width]
+
+    # Display the zoomed and stabilized frame
+    cv2.imshow('Stabilized and Zoomed Frame', cropped_frame)
+
+    # Exit if 'q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
