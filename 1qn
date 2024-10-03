@@ -1,0 +1,53 @@
+import cv2
+import numpy as np
+
+# Load the input video
+video_path = "/Users/akashdoss/Downloads/in-y2mate.com - HAMMER Blade 2 Pro video sample 2 nonstabilized_1080p.mp4"
+cap = cv2.VideoCapture(video_path)
+
+# Read the first frame
+_, prev_frame = cap.read()
+prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+
+while True:
+    # Read the next frame
+    success, curr_frame = cap.read()
+    if not success:
+        break
+
+    # Convert the current frame to grayscale
+    curr_gray = cv2.cvtColor(curr_frame, cv2.COLOR_BGR2GRAY)
+
+    # Detect feature points in previous frame
+    prev_pts = cv2.goodFeaturesToTrack(prev_gray, maxCorners=200, qualityLevel=0.01, minDistance=30, blockSize=3)
+
+    # Calculate optical flow (motion estimation)
+    curr_pts, status, _ = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, prev_pts, None)
+
+    # Filter valid points
+    idx = np.where(status == 1)[0]
+    prev_pts = prev_pts[idx]
+    curr_pts = curr_pts[idx]
+
+    # Estimate affine transformation (translation and rotation)
+    m, _ = cv2.estimateAffinePartial2D(prev_pts, curr_pts)
+
+    # Extract translation and rotation
+    dx = m[0, 2]
+    dy = m[1, 2]
+    da = np.arctan2(m[1, 0], m[0, 0])
+
+    print(f"Translation: ({dx}, {dy}), Rotation (radians): {da}")
+
+    # Update previous frame
+    prev_gray = curr_gray.copy()
+
+    # Display the current frame
+    cv2.imshow('Original Frame', curr_frame)
+
+    # Exit if 'q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
